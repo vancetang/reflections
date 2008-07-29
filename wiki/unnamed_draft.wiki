@@ -32,7 +32,7 @@ on your relevant pom, add the following:
 b. how to use reflection at runtime using post compiled resources
 
 get an instance or Reflections object, something like:
-
+{{{
         Reflections reflections = Reflections.getInstance()
                 .setConfiguration(Configuration
                         .build()
@@ -40,3 +40,4 @@ get an instance or Reflections object, something like:
                         .addUrls(ClasspathHelper.getUrlsForCurrentClasspath())
                         .setScanSources(false)
                         .setComputeTransitiveClosure(false));
+}}}
