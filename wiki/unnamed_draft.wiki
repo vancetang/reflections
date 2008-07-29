@@ -1,6 +1,6 @@
-how to add reflections to your application
+=how to add reflections to your application=
 
-a. how to add reflections maven plugin so that your modules are reflections ready at runtime, without the need to scan the codebase at bootstrap
+==a. how to add reflections maven plugin so that your modules are reflections ready at runtime, without the need to scan the codebase at bootstrap==
 
 on your relevant pom, add the following:
 {{{
@@ -29,7 +29,7 @@ on your relevant pom, add the following:
             </plugin>
 }}}
 
-b. how to use reflection at runtime using post compiled resources
+==b. how to use reflection at runtime using post compiled resources==
 
 get an instance or Reflections object, something like:
 {{{
