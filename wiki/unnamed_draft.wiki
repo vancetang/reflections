@@ -1,0 +1,42 @@
+how to add reflections to your application
+
+a. how to add reflections maven plugin so that your modules are reflections ready at runtime, without the need to scan the codebase at bootstrap
+
+on your relevant pom, add the following:
+
+	    <plugin>
+                <groupId>org.reflections</groupId>
+                <artifactId>reflections-maven</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>reflections</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                        
+                        <configuration>
+                            <destinations>
+                                ${project.build.outputDirectory}/reflections/${artifactId}-reflections.xml
+                            </destinations>
+                            <elementTypesToScan>annotations</elementTypesToScan>
+                            <computeTransitiveClosure>true</computeTransitiveClosure>
+                            <invertedElementTypes>annotations</invertedElementTypes>
+                            <!--<ignoredFqnPrefixes></ignoredFqnPrefixes>-->
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+b. how to use reflection at runtime using post compiled resources
+
+get an instance or Reflections object, something like:
+
+        Reflections reflections = Reflections.getInstance()
+                .setConfiguration(Configuration
+                        .build()
+                        .setFetchPostCompiledResources(true)
+                        .addUrls(ClasspathHelper.getUrlsForCurrentClasspath())
+                        .setScanSources(false)
+                        .setComputeTransitiveClosure(false));
