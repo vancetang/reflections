@@ -56,9 +56,10 @@ just create an instance of Reflections object, similiar to
                         .build(...)
                         ...
 }}}
+
 where:
-  use some of the ConfigurationBuilder enum elements to characterize the MD you need
-  use some of the setters on the configuration to fine-tune your MD
+* use some of the ConfigurationBuilder enum elements to characterize the MD you need
+* use some of the setters on the configuration to fine-tune your MD
 
 for example, to create MD for all classes in some package, scanning classes and annotations, compute transitive closure for supertypes,interfaces and meta annotations and also compute inverted indices, use the following configuration:
 {{{
