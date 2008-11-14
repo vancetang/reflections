@@ -26,11 +26,11 @@ Reflections Mojo with empty configuration:
 Available configuration parameters:
 
   # scanners
-    description: a comma separated list of scanner classes
+    description: a comma separated list of scanner classes. 
     default value: ClassAnnotationsScanner, SubTypesScanner
 
   # includeExclude
-    description: a comma separated list of include exclude filters
+    description: a comma separated list of include exclude filters. 
     default value: "-java., -javax., -sun., -com.sun."
         that is, exclude common java jre classes
 
