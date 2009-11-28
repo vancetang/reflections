@@ -1,7 +1,7 @@
 ===collect metadata and bootstrap in a multi module environment===
 In a multi module project, where each module is responsible for it's properties, jpa entities and maybe guice modules, use Reflections to collect that metadata and bootstrap the application
 {{{
-        Reflections reflections = new Reflections(new AbstractConfiguration()
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .setUrls(ClasspathHelper.getUrlsForPackagePrefix("your.package.here"))
                 .setScanners(new ResourcesScanner(), new TypeAnnotationsScanner()));
 
@@ -35,36 +35,37 @@ first configure your project's parent pom in the build.plugins section with Refl
 than, on runtime, collect these pre saved metadata and instantiate Reflections
 {{{
         Reflections reflections =
-                isProductions() ? Reflections.collect() : new Reflections("your.package.here");
+                isProduction() ? Reflections.collect() : new Reflections("your.package.here");
 }}}
 
 ===serialize Reflections into a java source file, and use it to statically reference java elements===
 {{{
-        Reflections reflections = new Reflections(new AbstractConfiguration()
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .filterInputsBy(new FilterBuilder().include("model.package"))
                 .setScanners(new TypesScanner(), new TypeElementsScanner())
-                .setUrls(asList(ClasspathHelper.getUrlForClass(MyEntity.class))));
+                .setUrls(asList(ClasspathHelper.getUrlsForPackagePrefix("model.package"))));
 
         String filename = System.getProperty("user.dir") + "/src/test/java/model.package.reflections.MyModelStore";
         reflections.save(filename, new JavaCodeSerializer());
 }}}
+replace "model.package" with your model's package prefix
+
 this serializes types and types elements into interfaces respectively to fully qualified name, for example:
 {{{
 //generated using Reflections JavaCodeSerializer
 public interface MyTestModelStore {
-public interface *org* extends IPackage {
-    public interface *reflections* extends IPackage {
-		public interface *TestModel$AC1* extends IClass {}
-		public interface *TestModel$C4* extends IClass {
-			public interface *f1* extends IField {}
-			public interface *m1* extends IMethod {}
-			public interface *m1_int_java$lang$String$$$$* extends IMethod {}
+public interface org extends IPackage {
+    public interface reflections extends IPackage {
+		public interface TestModel$AC1 extends IClass {}
+		public interface TestModel$C4 extends IClass {
+			public interface f1 extends IField {}
+			public interface m1 extends IMethod {}
 ...
 }
 }}}
 than use the different resolve methods to resolve the serialized element into Class, Field or Method. for example:
 {{{
-Class<? extends IMethod> imethod = MyTestModelStore.org.reflections.TestModel$C4.m1_int_java$lang$String$$$$.class;
+Class<? extends IMethod> imethod = MyTestModelStore.org.reflections.TestModel$C4.m1.class;
 Method method = JavaCodeSerializer.resolve(imethod);
 }}}
 can be useful to represent ognl statically and not in by strings or to use in annotations for marking fields or methods in a static manner
