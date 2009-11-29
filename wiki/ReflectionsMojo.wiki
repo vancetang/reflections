@@ -1,11 +1,11 @@
-Reflections Mojo with empty configuration:
+Reflections Mojo configuration on your pom.xml file
 {{{
     <build>
         <plugins>
             <plugin>
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections-maven</artifactId>
-                <version>0.9 or whatever the version might be</version>
+                <version>latest version...</version>
                 <executions>
                     <execution>
                         <goals>
@@ -23,17 +23,4 @@ Reflections Mojo with empty configuration:
     </build>
 }}}
 
-Available configuration parameters:
-
-  # scanners
-    description: a comma separated list of scanner classes. 
-    default value: ClassAnnotationsScanner, SubTypesScanner
-
-  # includeExclude
-    description: a comma separated list of include exclude filters. 
-    default value: "-java., -javax., -sun., -com.sun."
-        that is, exclude common java jre classes
-
-  # destinations
-    description: a comma separated list of destinations to save metadata to
-    default value: "${project.build.outputDirectory}/META-INF/reflections/${project.artifactId}-reflections.xml"
+*check out the [http://reflections.googlecode.com/svn/trunk/reflections-maven/javadoc/apidocs/org/reflections/maven/plugin/ReflectionsMojo.html ReflectionsMojo javadoc] for more information
