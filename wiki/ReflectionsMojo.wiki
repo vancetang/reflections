@@ -23,4 +23,6 @@ Reflections Mojo configuration on your pom.xml file
     </build>
 }}}
 
+By default, the Reflections Maven plugin saves the marshalled xml file of scanned metadata into ${project.build.outputDirectory}/META-INF/reflections/${project.artifactId}-reflections.xml
+
 *check out the [http://reflections.googlecode.com/svn/trunk/reflections-maven/javadoc/apidocs/org/reflections/maven/plugin/ReflectionsMojo.html ReflectionsMojo javadoc] for more information
