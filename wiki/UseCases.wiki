@@ -1,9 +1,19 @@
-===collect metadata and bootstrap in a multi module environment===
+some useful use cases below:
+  * bootstrap in a multi module environment
+  * collect pre scanned metadata
+  * serialize Reflections into a java source file, and use it to statically reference java elements
+  * find resources in your classpath (for example all properties files)
+  * optional parallel scanning
+  * some metadata analysis
+
+
+
+===bootstrap in a multi module environment===
 In a multi module project, where each module is responsible for it's properties, jpa entities and maybe guice modules, use Reflections to collect that metadata and bootstrap the application
 {{{
         Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .setUrls(ClasspathHelper.getUrlsForPackagePrefix("your.package.here"))
-                .setScanners(new ResourcesScanner(), new TypeAnnotationsScanner()));
+                .setScanners(new ResourcesScanner(), new TypeAnnotationsScanner(), new SubTypesScanner()));
 
         Set<String> propertiesFiles = reflections.getResources(Pattern.compile(".*\\.properties"));
         Properties allProperties = createOneBigProperties(propertiesFiles);
@@ -15,7 +25,7 @@ In a multi module project, where each module is responsible for it's properties,
         Injector injector = createOneBigInjector(guiceModules);
 }}}
 
-===avoid scanning classpath every time by collecting pre saved metadata===
+===collect pre scanned metadata===
 first configure your project's parent pom in the build.plugins section with Reflections, like this
 {{{
             <plugin>
@@ -69,3 +79,41 @@ Class<? extends IMethod> imethod = MyTestModelStore.org.reflections.TestModel$C4
 Method method = JavaCodeSerializer.resolve(imethod);
 }}}
 can be useful to represent ognl statically and not in by strings or to use in annotations for marking fields or methods in a static manner
+
+===find resources in your classpath===
+{{{
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
+                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("your.package.here"))
+                .setScanners(new ResourcesScanner());
+
+        Set<String> propertiesFiles = reflections.getResources(Pattern.compile(".*\\.properties"));
+        Set<String> hibernateCfgFiles = reflections.getResources(Pattern.compile(".*\\.cfg\\.xml"));
+}}}
+
+===optional parallel scanning===
+{{{
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
+                .filterInputsBy(...)
+                .setScanners(...)
+                .setUrls(...)
+                .setExecutorServiceSupplier(new Supplier<ExecutorService>() {
+                    public ExecutorService get() {
+                        return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+                    }
+        }));
+}}}
+will result in this log line when scanning:
+{{{
+[main] INFO  org.reflections.Reflections - Reflections took 164 ms to scan 1 urls, producing 13 keys and 23 values [using 2 cores]
+}}}
+
+===some metadata analysis===
+although your ide should support these, it might be useful sometimes:
+{{{
+        Reflections reflections = new Reflections(new ConfigurationBuilder()
+                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("your.package.here"))
+                .setScanners(new TypeAnnotationsScanner(), new MethodAnnotationsScanner(), new FieldAnnotationsScanner()));
+
+        Set<Method> deprecatedMethods = reflections.getMethodsAnnotatedWith(Deprecated.class);
+
+}}}
