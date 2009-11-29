@@ -2,6 +2,7 @@ some useful use cases below:
   * bootstrap in a multi module environment
   * collect pre scanned metadata
   * serialize Reflections into a java source file, and use it to statically reference java elements
+  * query the store directly, avoid definition of types in class loader 
   * find resources in your classpath (for example all properties files)
   * optional parallel scanning
   * some metadata analysis
@@ -47,6 +48,23 @@ than, on runtime, collect these pre saved metadata and instantiate Reflections
         Reflections reflections =
                 isProduction() ? Reflections.collect() : new Reflections("your.package.here");
 }}}
+of course, saving the scanned metadata can be done without maven, by simply calling the save method
+{{{
+    public static void main(String[] args) {
+        //from time to time, I run this main to regenerate saved metadata for Reflections
+        new Reflections(new ConfigurationBuilder()
+                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("my.project.prefix"))
+                .setScanners(/*whatever*/))
+                .save("src/main/resources/resource1-reflections.xml");
+
+        new Reflections(new ConfigurationBuilder()
+                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("my.project.prefix.model"))
+                .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("my.project.prefix.model")))
+                .setScanners(new TypesScanner(), new TypeElementsScanner())
+                .setSerializer(new JavaCodeSerializer()))
+                .save("src/main/java/my.project.prefix.model.MyModelStore");
+    }
+}}}
 
 ===serialize Reflections into a java source file, and use it to statically reference java elements===
 {{{
@@ -79,6 +97,19 @@ Class<? extends IMethod> imethod = MyTestModelStore.org.reflections.TestModel$C4
 Method method = JavaCodeSerializer.resolve(imethod);
 }}}
 can be useful to represent ognl statically and not in by strings or to use in annotations for marking fields or methods in a static manner
+
+===query the store directly, avoid definition of types in class loader ===
+querying through Reflections results in classes defined by the class loader. this is usually not a problem, but in cases class definition is not desirable, you can query the store directly using strings only
+{{{
+        Reflections reflections = new Reflections(...); //see in other use cases
+        Set<String> serializableFqns = reflections.getStore().getSubTypesOf("java.io.Serializable");
+}}}
+plus, you can create your specialized query methods by querying the store directly
+{{{
+        Map<String, Multimap<String, String>> storeMap = reflections.getStore().getStoreMap();
+//or
+        Multimap<String, String> scannerMap = reflections.getStore().get(ResourcesScanner.class);
+}}}
 
 ===find resources in your classpath===
 {{{
