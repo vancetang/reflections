@@ -53,6 +53,13 @@
                 <configuration>
                     <reportOutputDirectory>javadoc</reportOutputDirectory>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
@@ -83,12 +90,6 @@
             <name>java.net-repo</name>
             <url>http://download.java.net/maven/2/</url>
         </repository>
-        
-        <!--<repository>-->
-            <!--<id>google-maven-repository</id>-->
-            <!--<name>Google Maven Repository</name>-->
-            <!--<url>http://google-maven-repository.googlecode.com/svn/repository/</url>-->
-        <!--</repository>-->
     </repositories>
 
 </project>
