@@ -1,0 +1,18 @@
+===MavenRepo===
+to use Reflections via a maven repository, configure your pom.xml with
+{{{
+<repository>
+    <id>reflections-repo</id>
+    <name>Reflections Maven2 Repository</name>
+    <url>http://reflections.googlecode.com/svn/repo</url>
+</repository>
+}}}
+
+than add a dependency to Reflections in your pom.xml
+{{{
+<dependency>
+    <groupId>org.reflections</groupId>
+    <artifactId>reflections</artifactId>
+    <version>the latest version...</version>
+</dependency>
+}}}
