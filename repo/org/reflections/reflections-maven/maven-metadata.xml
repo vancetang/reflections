@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.reflections</groupId>
+  <artifactId>reflections-maven</artifactId>
+  <version>0.9.5-RC1</version>
+  <versioning>
+    <latest>0.9.5-RC1</latest>
+    <versions>
+      <version>0.9.5-RC1</version>
+    </versions>
+    <lastUpdated>20091205084227</lastUpdated>
+  </versioning>
+</metadata>
