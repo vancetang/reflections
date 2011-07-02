@@ -12,8 +12,12 @@ some useful use cases below:
 In a multi module project, where each module is responsible for it's properties, jpa entities and maybe guice modules, use Reflections to collect that metadata and bootstrap the application
 {{{
         Reflections reflections = new Reflections(new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("your.package.here"))
-                .setScanners(new ResourcesScanner(), new TypeAnnotationsScanner(), new SubTypesScanner()));
+                .addUrls(ClasspathHelper.forPackage("your.package.here"),
+                         ClasspathHelper.forClass(Entity.class), 
+                         ClasspathHelper.forClass(Module.class))
+                .setScanners(new ResourcesScanner(), 
+                             new TypeAnnotationsScanner(), 
+                             new SubTypesScanner()));
 
         Set<String> propertiesFiles = reflections.getResources(Pattern.compile(".*\\.properties"));
         Properties allProperties = createOneBigProperties(propertiesFiles);
@@ -52,12 +56,12 @@ of course, saving the scanned metadata can be done without maven, by simply call
     public static void main(String[] args) {
         //from time to time, I run this main to regenerate saved metadata for Reflections
         new Reflections(new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("my.project.prefix"))
+                .setUrls(ClasspathHelper.forPackage("my.project.prefix"))
                 .setScanners(/*whatever*/))
                 .save("src/main/resources/resource1-reflections.xml");
 
         new Reflections(new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("my.project.prefix.model"))
+                .setUrls(ClasspathHelper.forPackage("my.project.prefix.model"))
                 .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("my.project.prefix.model")))
                 .setScanners(new TypesScanner(), new TypeElementsScanner())
                 .setSerializer(new JavaCodeSerializer()))
@@ -70,7 +74,7 @@ of course, saving the scanned metadata can be done without maven, by simply call
         Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .filterInputsBy(new FilterBuilder().include("model.package"))
                 .setScanners(new TypesScanner(), new TypeElementsScanner())
-                .setUrls(asList(ClasspathHelper.getUrlsForPackagePrefix("model.package"))));
+                .setUrls(asList(ClasspathHelper.forPackage("model.package"))));
 
         String filename = System.getProperty("user.dir") + "/src/test/java/model.package.reflections.MyModelStore";
         reflections.save(filename, new JavaCodeSerializer());
@@ -113,7 +117,7 @@ plus, you can create your specialized query methods by querying the store direct
 ===find resources in your classpath===
 {{{
         Reflections reflections = new Reflections(new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.getUrlsForPackagePrefix("your.package.here"))
+                .setUrls(ClasspathHelper.forPackage("your.package.here"))
                 .setScanners(new ResourcesScanner());
 
         Set<String> propertiesFiles = reflections.getResources(Pattern.compile(".*\\.properties"));
@@ -126,11 +130,7 @@ plus, you can create your specialized query methods by querying the store direct
                 .filterInputsBy(...)
                 .setScanners(...)
                 .setUrls(...)
-                .setExecutorServiceSupplier(new Supplier<ExecutorService>() {
-                    public ExecutorService get() {
-                        return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-                    }
-        }));
+                .setExecutorService(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
 }}}
 will result in this log line when scanning:
 {{{
