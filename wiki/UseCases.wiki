@@ -35,7 +35,7 @@ first configure your project's parent pom in the build.plugins section with Refl
             <plugin>
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections-maven</artifactId>
-                <version>0.9.5</version>
+                <version>0.9.8</version>
                 <executions>
                     <execution>
                         <goals>
