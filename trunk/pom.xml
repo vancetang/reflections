@@ -4,7 +4,7 @@
 
     <groupId>org.reflections</groupId>
     <artifactId>reflections-parent</artifactId>
-    <version>0.9.8</version>
+    <version>0.9.9-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Reflections</name>
@@ -19,7 +19,7 @@
     <licenses>
         <license>
             <name>WTFPL</name>
-            <url>http://en.wikipedia.org/wiki/WTFPL</url>
+            <url>http://www.wtfpl.net/</url>
         </license>
     </licenses>
 
