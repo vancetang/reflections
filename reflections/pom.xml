@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.reflections</groupId>
         <artifactId>reflections-parent</artifactId>
-        <version>0.9.8</version>
+        <version>0.9.9-SNAPSHOT</version>
     </parent>
 
     <artifactId>reflections</artifactId>
@@ -17,14 +17,15 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <!--<version>12.0</version>--> <!-- jdk1.6+ -->
+            <!--<version>12.0</version>  &lt;!&ndash;jdk1.6+&ndash;&gt;-->
             <version>11.0.2</version> <!-- case: when only jdk1.5 is acceptable -->
         </dependency>
 
         <dependency>
-            <groupId>javassist</groupId>
+            <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
-            <version>3.12.1.GA</version>
+            <version>3.16.1-GA</version> <!-- case: jdk1.5-->
+            <!--<version>3.17.1-GA</version>--> <!-- case: > jdk1.6 -->
             <optional>false</optional> <!-- case: when not actually scanning with javassist or if using {@link Reflections.collect()} -->
         </dependency>
 
@@ -70,6 +71,14 @@
             <artifactId>junit</artifactId>
             <version>4.5</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-vfs2</artifactId>
+            <version>2.0</version>
+            <scope>provided</scope>
+            <optional>true</optional> <!-- case: -->
         </dependency>
 
     </dependencies>
