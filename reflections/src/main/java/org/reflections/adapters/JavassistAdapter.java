@@ -1,7 +1,6 @@
 package org.reflections.adapters;
 
 import com.google.common.base.Joiner;
-import com.google.common.cache.*;
 import com.google.common.collect.Lists;
 import javassist.bytecode.*;
 import javassist.bytecode.annotation.Annotation;
@@ -9,16 +8,15 @@ import org.reflections.ReflectionsException;
 import org.reflections.util.Utils;
 import org.reflections.vfs.Vfs;
 
-import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import static javassist.bytecode.AccessFlag.*;
+import static javassist.bytecode.AccessFlag.isPrivate;
+import static javassist.bytecode.AccessFlag.isProtected;
 
 /**
  *
@@ -27,21 +25,6 @@ public class JavassistAdapter implements MetadataAdapter<ClassFile, FieldInfo, M
 
     /**setting this to false will result in returning only visible annotations from the relevant methods here (only {@link java.lang.annotation.RetentionPolicy#RUNTIME})*/
     public static boolean includeInvisibleTag = true;
-
-    private @Nullable Cache<Vfs.File, ClassFile> classFileCache;
-
-    {
-        try {
-            classFileCache = CacheBuilder.newBuilder().softValues().weakKeys().maximumSize(16).expireAfterWrite(500, TimeUnit.MILLISECONDS).
-                    build(new CacheLoader<Vfs.File, ClassFile>() {
-                        @Override public ClassFile load(Vfs.File key) throws Exception {
-                            return createClassObject(key);
-                        }
-                    });
-        } catch (Error e) {
-            classFileCache = null;
-        }
-    }
 
     public List<FieldInfo> getFields(final ClassFile cls) {
         //noinspection unchecked
@@ -64,12 +47,12 @@ public class JavassistAdapter implements MetadataAdapter<ClassFile, FieldInfo, M
     }
 
     public List<String> getClassAnnotationNames(final ClassFile aClass) {
-        return getAnnotationNames((AnnotationsAttribute) aClass.getAttribute(AnnotationsAttribute.visibleTag), 
+        return getAnnotationNames((AnnotationsAttribute) aClass.getAttribute(AnnotationsAttribute.visibleTag),
                 includeInvisibleTag ? (AnnotationsAttribute) aClass.getAttribute(AnnotationsAttribute.invisibleTag) : null);
     }
 
     public List<String> getFieldAnnotationNames(final FieldInfo field) {
-        return getAnnotationNames((AnnotationsAttribute) field.getAttribute(AnnotationsAttribute.visibleTag), 
+        return getAnnotationNames((AnnotationsAttribute) field.getAttribute(AnnotationsAttribute.visibleTag),
                 includeInvisibleTag ? (AnnotationsAttribute) field.getAttribute(AnnotationsAttribute.invisibleTag) : null);
     }
 
@@ -86,10 +69,12 @@ public class JavassistAdapter implements MetadataAdapter<ClassFile, FieldInfo, M
 
         if (parameterAnnotationsAttributes != null) {
             for (ParameterAnnotationsAttribute parameterAnnotationsAttribute : parameterAnnotationsAttributes) {
-                Annotation[][] annotations = parameterAnnotationsAttribute.getAnnotations();
-                if (parameterIndex < annotations.length) {
-                    Annotation[] annotation = annotations[parameterIndex];
-                    result.addAll(getAnnotationNames(annotation));
+                if (parameterAnnotationsAttribute != null) {
+                    Annotation[][] annotations = parameterAnnotationsAttribute.getAnnotations();
+                    if (parameterIndex < annotations.length) {
+                        Annotation[] annotation = annotations[parameterIndex];
+                        result.addAll(getAnnotationNames(annotation));
+                    }
                 }
             }
         }
@@ -108,17 +93,6 @@ public class JavassistAdapter implements MetadataAdapter<ClassFile, FieldInfo, M
     }
 
     public ClassFile getOfCreateClassObject(final Vfs.File file) {
-        try {
-            if (classFileCache != null) {
-                return ((LoadingCache<Vfs.File, ClassFile>) classFileCache).get(file);
-            }
-        } catch (Exception e) {
-            //fallback
-        }
-        return createClassObject(file);
-    }
-
-    protected ClassFile createClassObject(final Vfs.File file) {
         InputStream inputStream = null;
         try {
             inputStream = file.openInputStream();

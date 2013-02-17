@@ -25,8 +25,8 @@ public class ReflectionsParallelTest extends ReflectionsTest {
                         new TypeAnnotationsScanner().filterResultsBy(filter),
                         new FieldAnnotationsScanner().filterResultsBy(filter),
                         new MethodAnnotationsScanner().filterResultsBy(filter),
-                        new ConvertersScanner().filterResultsBy(filter))
-                .useParallelExecutor());
+                        new MethodParameterScanner())
+                                .useParallelExecutor());
     }
 
     @Test

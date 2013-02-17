@@ -6,6 +6,8 @@ import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
 import org.reflections.Configuration;
 import org.reflections.Reflections;
+import org.reflections.ReflectionsException;
+import org.reflections.adapters.JavaReflectionAdapter;
 import org.reflections.adapters.JavassistAdapter;
 import org.reflections.adapters.MetadataAdapter;
 import org.reflections.scanners.Scanner;
@@ -14,6 +16,8 @@ import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.serializers.Serializer;
 import org.reflections.serializers.XmlSerializer;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -37,13 +41,13 @@ import static org.reflections.util.FilterBuilder.prefix;
  * {@link #serializer} is {@link org.reflections.serializers.XmlSerializer}
  */
 public class ConfigurationBuilder implements Configuration {
-    private final Set<Scanner> scanners;
-    private Set<URL> urls;
-    /*lazy*/ private MetadataAdapter metadataAdapter;
-    /*@Nullable*/ private Predicate<String> inputsFilter;
+    @Nonnull private Set<Scanner> scanners;
+    @Nonnull private Set<URL> urls;
+    /*lazy*/ protected MetadataAdapter metadataAdapter;
+    @Nullable private Predicate<? super String> inputsFilter;
     /*lazy*/ private Serializer serializer;
-    private ExecutorService executorService;
-    /*@Nullable*/ private ClassLoader[] classLoaders;
+    @Nullable private ExecutorService executorService;
+    @Nullable private ClassLoader[] classLoaders;
 
     public ConfigurationBuilder() {
         scanners = Sets.<Scanner>newHashSet(new TypeAnnotationsScanner(), new SubTypesScanner());
@@ -53,26 +57,28 @@ public class ConfigurationBuilder implements Configuration {
     /** constructs a {@link ConfigurationBuilder} using the given parameters, in a non statically typed way. that is, each element in {@code params} is
      * guessed by it's type and populated into the configuration.
      * <ul>
-     *     <li>{@link String} - would add urls using {@link ClasspathHelper#forPackage(String, ClassLoader...)} ()}</li>
-     *     <li>{@link Class} - would add urls using {@link ClasspathHelper#forClass(Class, ClassLoader...)} </li>
-     *     <li>{@link ClassLoader} - would use these classloaders in order to find urls in ClasspathHelper.forPackage(), ClasspathHelper.forClass() and for resolving types</li>
-     *     <li>{@link Scanner} - would use given scanner, overriding the default scanners</li>
-     *     <li>{@link URL} - would add the given url for scanning</li>
-     *     <li>{@code Object[]} - would use each element as above</li>
+     *     <li>{@link String} - add urls using {@link ClasspathHelper#forPackage(String, ClassLoader...)} ()}</li>
+     *     <li>{@link Class} - add urls using {@link ClasspathHelper#forClass(Class, ClassLoader...)} </li>
+     *     <li>{@link ClassLoader} - use these classloaders in order to find urls in ClasspathHelper.forPackage(), ClasspathHelper.forClass() and for resolving types</li>
+     *     <li>{@link Scanner} - use given scanner, overriding the default scanners</li>
+     *     <li>{@link URL} - add the given url for scanning</li>
+     *     <li>{@code Object[]} - flatten and use each element as above</li>
      * </ul>
      *
      * use any parameter type in any order. this constructor uses instanceof on each param and instantiate a {@link ConfigurationBuilder} appropriately.
      * */
-    public static ConfigurationBuilder build(final Object... params) {
+    public static ConfigurationBuilder build(final @Nullable Object... params) {
         ConfigurationBuilder builder = new ConfigurationBuilder();
 
         //flatten
         List<Object> parameters = Lists.newArrayList();
-        for (Object param : params) {
-            if (param != null) {
-                if (param.getClass().isArray()) { for (Object p : (Object[]) param) if (p != null) parameters.add(p); }
-                else if (param instanceof Iterable) { for (Object p : (Iterable) param) if (p != null) parameters.add(p); }
-                else parameters.add(param);
+        if (params != null) {
+            for (Object param : params) {
+                if (param != null) {
+                    if (param.getClass().isArray()) { for (Object p : (Object[]) param) if (p != null) parameters.add(p); }
+                    else if (param instanceof Iterable) { for (Object p : (Iterable) param) if (p != null) parameters.add(p); }
+                    else parameters.add(param);
+                }
             }
         }
 
@@ -85,11 +91,22 @@ public class ConfigurationBuilder implements Configuration {
 
         for (Object param : parameters) {
             if (param instanceof String) { builder.addUrls(ClasspathHelper.forPackage((String) param, classLoaders)); filter.include(prefix((String) param)); }
-            else if (param instanceof Class) { builder.addUrls(ClasspathHelper.forClass((Class) param, classLoaders)); filter.includePackage(((Class) param)); }
+            else if (param instanceof Class) {
+                if (Scanner.class.isAssignableFrom((Class) param)) {
+                    try { builder.addScanners(((Scanner) ((Class) param).newInstance())); } catch (Exception e) { /*fallback*/ }
+                }
+                builder.addUrls(ClasspathHelper.forClass((Class) param, classLoaders)); filter.includePackage(((Class) param));
+            }
             else if (param instanceof Scanner) { scanners.add((Scanner) param); }
             else if (param instanceof URL) { builder.addUrls((URL) param); }
             else if (param instanceof ClassLoader) { /* already taken care */ }
-            else if (Reflections.log != null) { Reflections.log.warn("could not use param " + param); }
+            else if (param instanceof Predicate) { filter.add((Predicate<String>) param); }
+            else if (param instanceof ExecutorService) { builder.setExecutorService((ExecutorService) param); }
+            else if (Reflections.log != null) { throw new ReflectionsException("could not use param " + param); }
+        }
+
+        if (builder.getUrls().isEmpty()) {
+            builder.addUrls(ClasspathHelper.forClassLoader()); //default urls getResources("")
         }
 
         builder.filterInputsBy(filter);
@@ -97,6 +114,11 @@ public class ConfigurationBuilder implements Configuration {
         if (!loaders.isEmpty()) { builder.addClassLoaders(loaders); }
 
         return builder;
+    }
+
+    /** instantiates a Reflections object using this Configuration */
+    public Reflections build() {
+        return new Reflections(this);
     }
 
     public Set<Scanner> getScanners() {
@@ -151,8 +173,19 @@ public class ConfigurationBuilder implements Configuration {
         return this;
     }
 
+    /** returns the metadata adapter.
+     * if javassist library exists in the classpath, this method returns {@link JavassistAdapter} otherwise defaults to {@link JavaReflectionAdapter}.
+     * <p>the {@link JavassistAdapter} is preferred in terms of performance and class loading. */
     public MetadataAdapter getMetadataAdapter() {
-        return metadataAdapter != null ? metadataAdapter : (metadataAdapter = new JavassistAdapter());
+        if (metadataAdapter != null) return metadataAdapter;
+        else {
+            try {
+                return (metadataAdapter = new JavassistAdapter());
+            } catch (Throwable e) {
+                if (Reflections.log != null) Reflections.log.warn("could not create JavassistAdapter, using JavaReflectionAdapter", e);
+                return (metadataAdapter = new JavaReflectionAdapter());
+            }
+        }
     }
 
     /** sets the metadata adapter used to fetch metadata from classes */
@@ -167,7 +200,7 @@ public class ConfigurationBuilder implements Configuration {
 
     /** sets the input filter for all resources to be scanned
      * <p> supply a {@link com.google.common.base.Predicate} or use the {@link FilterBuilder}*/
-    public ConfigurationBuilder filterInputsBy(Predicate<String> inputsFilter) {
+    public ConfigurationBuilder filterInputsBy(Predicate<? super String> inputsFilter) {
         this.inputsFilter = inputsFilter;
         return this;
     }

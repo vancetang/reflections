@@ -14,6 +14,7 @@ import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.Utils;
 
 import java.io.*;
+import java.lang.reflect.Constructor;
 import java.util.Map;
 
 /** serialization of Reflections to xml
@@ -35,7 +36,14 @@ import java.util.Map;
 public class XmlSerializer implements Serializer {
 
     public Reflections read(InputStream inputStream) {
-        Reflections reflections = new Reflections(new ConfigurationBuilder());
+        Reflections reflections;
+        try {
+            Constructor<Reflections> constructor = Reflections.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            reflections = constructor.newInstance();
+        } catch (Exception e) {
+            reflections = new Reflections(new ConfigurationBuilder());
+        }
 
         Document document;
         try {

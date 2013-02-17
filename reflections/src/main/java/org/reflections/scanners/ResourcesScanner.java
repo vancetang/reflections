@@ -9,8 +9,9 @@ public class ResourcesScanner extends AbstractScanner {
         return !file.endsWith(".class"); //not a class
     }
 
-    public void scan(Vfs.File file) {
+    @Override public Object scan(Vfs.File file, Object classObject) {
         getStore().put(file.getName(), file.getRelativePath());
+        return classObject;
     }
 
     public void scan(Object cls) {

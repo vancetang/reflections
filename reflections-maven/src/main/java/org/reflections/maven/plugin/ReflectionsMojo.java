@@ -10,7 +10,10 @@ import org.jfrog.maven.annomojo.annotations.MojoParameter;
 import org.jfrog.maven.annomojo.annotations.MojoPhase;
 import org.reflections.Reflections;
 import org.reflections.ReflectionsException;
-import org.reflections.scanners.*;
+import org.reflections.scanners.Scanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
+import org.reflections.scanners.TypeElementsScanner;
 import org.reflections.serializers.JavaCodeSerializer;
 import org.reflections.serializers.Serializer;
 import org.reflections.util.ClasspathHelper;
@@ -123,7 +126,7 @@ public class ReflectionsMojo extends MvnInjectableMojoSupport {
 
                 if (serializerInstance instanceof JavaCodeSerializer) {
                     int size = config.getScanners().size();
-                    config.addScanners(new TypesScanner(), new TypeElementsScanner());
+                    config.addScanners(new TypeElementsScanner());
                     if (size != config.getScanners().size()) {
                         getLog().info("added type scanners for JavaCodeSerializer");
                     }

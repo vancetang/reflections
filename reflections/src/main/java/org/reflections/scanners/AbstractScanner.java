@@ -8,6 +8,8 @@ import org.reflections.ReflectionsException;
 import org.reflections.adapters.MetadataAdapter;
 import org.reflections.vfs.Vfs;
 
+import static org.reflections.Reflections.log;
+
 /**
  *
  */
@@ -22,13 +24,16 @@ public abstract class AbstractScanner implements Scanner {
         return file.endsWith(".class"); //is a class file
     }
 
-    public void scan(Vfs.File file) {
-        try {
-            final Object classObject = getMetadataAdapter().getOfCreateClassObject(file);
-            scan(classObject);
-        } catch (Exception e) {
-            throw new ReflectionsException("could not create class file from " + file.getName(), e);
+    public Object scan(Vfs.File file, Object classObject) {
+        if (classObject == null) {
+            try {
+                classObject = configuration.getMetadataAdapter().getOfCreateClassObject(file);
+            } catch (Exception e) {
+                throw new ReflectionsException("could not create class object from file " + file.getRelativePath());
+            }
         }
+        scan(classObject);
+        return classObject;
     }
 
     public abstract void scan(Object cls);
