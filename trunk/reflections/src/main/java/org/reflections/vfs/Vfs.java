@@ -210,13 +210,17 @@ public abstract class Vfs {
 
         jarUrl {
             public boolean matches(URL url) {
-                return "jar".equals(url.getProtocol());
+                return "jar".equals(url.getProtocol()) || "zip".equals(url.getProtocol()) || "wsjar".equals(url.getProtocol());
             }
 
             public Dir createDir(URL url) throws Exception {
-                URLConnection urlConnection = url.openConnection();
-                return urlConnection instanceof JarURLConnection ?
-                        new ZipDir(((JarURLConnection) urlConnection).getJarFile()) : null;
+                try {
+                    URLConnection urlConnection = url.openConnection();
+                    if (urlConnection instanceof JarURLConnection) {
+                            return new ZipDir(((JarURLConnection) urlConnection).getJarFile());
+                    }
+                } catch (Throwable e) { /*fallback*/ }
+                return new ZipDir(new JarFile(getFile(url)));
             }
         },
 
@@ -288,40 +292,5 @@ public abstract class Vfs {
             }
         }
 
-    }
-
-    public abstract class AbstractDir<T> implements Dir {
-        protected final T root;
-        public AbstractDir(T root) { this.root = root; }
-
-        public T getRoot() { return root; }
-
-        public Iterable<File> getFiles() {
-            return new Iterable<File>() {
-                public Iterator<File> iterator() {
-                    return new AbstractIterator<File>() {
-                        final Stack<T> stack = new Stack<T>();
-                        {listDir(root);}
-                        protected final Vfs.File computeNext() {
-                            try {
-                                T file;
-                                while (!stack.isEmpty()) {
-                                    file = stack.pop();
-                                    if (isDir(file)) listDir(file);
-                                    else return getFile(file);
-                                }
-                                return endOfData();
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    };
-                }
-            };
-        }
-
-        protected abstract File getFile(T file);
-        protected abstract boolean listDir(T file);
-        protected abstract boolean isDir(T file);
     }
 }
