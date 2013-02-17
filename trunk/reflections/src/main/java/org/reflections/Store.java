@@ -5,12 +5,14 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.*;
 import org.reflections.scanners.*;
 import org.reflections.scanners.Scanner;
+import org.reflections.util.Utils;
 
 import javax.annotation.Nullable;
 import java.lang.annotation.Inherited;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Multimaps.*;
 
 /**
@@ -31,10 +33,9 @@ public class Store {
         storeMap = new HashMap<String, Multimap<String, String>>();
     }
 
-    private SetMultimap<String, String> createMultimap() {
-        return concurrent ?
-                synchronizedSetMultimap(newSetMultimap(new HashMap<String, Collection<String>>(), setSupplier)) :
-                Multimaps.newSetMultimap(new HashMap<String, Collection<String>>(), setSupplier);
+    protected ListMultimap<String, String> createMultimap() {
+        ListMultimap<String, String> multimap = newListMultimap(new HashMap<String, Collection<String>>(), listSupplier);
+        return concurrent ? synchronizedListMultimap(multimap) : multimap;
     }
 
     public Multimap<String, String> getOrCreate(String indexName) {
@@ -148,6 +149,8 @@ public class Store {
     /**
      * get types annotated with a given annotation, both classes and annotations
      * <p>{@link java.lang.annotation.Inherited} is honored according to given honorInherited
+     * <p>when honoring @Inherited, meta-annotation should only effect annotated super classes and it's sub types
+     * <p>when not honoring @Inherited, meta annotation effects all subtypes, including annotations interfaces and classes
      * <p><i>Note that this (@Inherited) meta-annotation type has no effect if the annotated type is used for anything other than a class.
      * Also, this meta-annotation causes annotations to be inherited only from superclasses; annotations on implemented interfaces have no effect.</i>
      */
@@ -162,11 +165,16 @@ public class Store {
         return result;
     }
 
+    /**
+     *
+     * <p>when honoring @Inherited, meta-annotation should only effect annotated super classes and it's sub types
+     * <p>when not honoring @Inherited, meta annotation effects all subtypes, including annotations interfaces and classes
+     * */
     public Set<String> getInheritedSubTypes(Iterable<String> types, String annotation, boolean honorInherited) {
         Set<String> result = Sets.newHashSet(types);
 
         if (honorInherited && isInheritedAnnotation(annotation)) {
-            //when honoring @Inherited, meta-annotation should only effect annotated super classes and it's sub types
+            //when honoring @Inherited, meta-annotation should only effect annotated super classes and its sub types
             for (String type : types) {
                 if (isClass(type)) {
                     result.addAll(getSubTypesOf(type));
@@ -188,12 +196,17 @@ public class Store {
 
     /** get method names annotated with a given annotation */
     public Set<String> getMethodsAnnotatedWith(String annotation) {
-        return get(MethodAnnotationsScanner.class, annotation);
+        return Sets.filter(get(MethodAnnotationsScanner.class, annotation), not(isConstructor));
     }
 
     /** get fields annotated with a given annotation */
     public Set<String> getFieldsAnnotatedWith(String annotation) {
         return get(FieldAnnotationsScanner.class, annotation);
+    }
+
+    /** get constructor names annotated with a given annotation */
+    public Set<String> getConstructorsAnnotatedWith(String annotation) {
+        return Sets.filter(get(MethodAnnotationsScanner.class, annotation), isConstructor);
     }
 
     /** get resources relative paths where simple name (key) equals given name */
@@ -224,14 +237,7 @@ public class Store {
     //support
     /** is the given type name a class. <p>causes class loading */
     public boolean isClass(String type) {
-        //todo create a string version of this
-        return !isInterface(type);
-    }
-
-    /** is the given type name an interface. <p>causes class loading */
-    public boolean isInterface(String aClass) {
-        //todo create a string version of this
-        return ReflectionUtils.forName(aClass).isInterface();
+        return !ReflectionUtils.forName(type).isInterface();
     }
 
     /** is the given type is an annotation, based on the metadata stored by TypeAnnotationsScanner */
@@ -247,9 +253,15 @@ public class Store {
     }
 
     //
-    private final static transient Supplier<Set<String>> setSupplier = new Supplier<Set<String>>() {
-        public Set<String> get() {
-            return Sets.newHashSet();
+    private final static transient Supplier<List<String>> listSupplier = new Supplier<List<String>>() {
+        public List<String> get() {
+            return Lists.newArrayList();
+        }
+    };
+
+    private static final Predicate<String> isConstructor = new Predicate<String>() {
+        public boolean apply(@Nullable String input) {
+            return Utils.isConstructor(input);
         }
     };
 }

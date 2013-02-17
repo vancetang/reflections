@@ -34,7 +34,12 @@ public abstract class ClasspathHelper {
             return classLoaders;
         } else {
             ClassLoader contextClassLoader = contextClassLoader(), staticClassLoader = staticClassLoader();
-            return contextClassLoader != staticClassLoader ? new ClassLoader[]{contextClassLoader, staticClassLoader} : new ClassLoader[]{contextClassLoader};
+            return contextClassLoader != null ?
+                    staticClassLoader != null && contextClassLoader != staticClassLoader ?
+                            new ClassLoader[]{contextClassLoader, staticClassLoader} :
+                            new ClassLoader[]{contextClassLoader} :
+                    new ClassLoader[] {};
+
         }
     }
 

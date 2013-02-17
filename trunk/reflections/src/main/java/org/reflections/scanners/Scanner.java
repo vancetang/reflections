@@ -5,6 +5,8 @@ import com.google.common.collect.Multimap;
 import org.reflections.Configuration;
 import org.reflections.vfs.Vfs;
 
+import javax.annotation.Nullable;
+
 /**
  *
  */
@@ -20,7 +22,7 @@ public interface Scanner {
 
     boolean acceptsInput(String file);
 
-    void scan(Vfs.File file);
+    Object scan(Vfs.File file, @Nullable Object classObject);
 
     boolean acceptResult(String fqn);
 }

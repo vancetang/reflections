@@ -16,7 +16,8 @@ public interface TestModel {
     public @AI2 interface I2 extends I1 {}
 
     public @Retention(RUNTIME) @Inherited @interface AC1 {}
-    public @AC1 class C1 implements I2 {}
+    public @Retention(RUNTIME) @interface AC1n {}
+    public @AC1 @AC1n class C1 implements I2 {}
     public @Retention(RUNTIME) @interface AC2 {
         public abstract String value();
     }
@@ -34,12 +35,16 @@ public interface TestModel {
         @AF1("2") protected String f2;
         protected String f3;
 
+        public C4() { }
+        @AM1("1") public C4(@AM1("1") String f1) { this.f1 = f1; }
+
         @AM1("1") protected void m1() {}
         @AM1("1") public void m1(int integer, String... strings) {}
         @AM1("1") public void m1(int[][] integer, String[][] strings) {}
         @AM1("2") public String m3() {return null;}
         public String m4(@AM1("2") String string) {return null;}
         public C3 c2toC3(C2 c2) {return null;}
+        public int add(int i1, int i2) { return i1+i2; }
     }
     
     public class C5 extends C3 {}

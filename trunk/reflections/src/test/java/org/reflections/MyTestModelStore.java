@@ -1,55 +1,113 @@
-//generated using Reflections JavaCodeSerializer [Sat Oct 22 16:07:05 IST 2011]
+//generated using Reflections JavaCodeSerializer [Sun Feb 17 18:27:54 GMT+02:00 2013]
 package org.reflections;
 
-import static org.reflections.serializers.JavaCodeSerializer.*;
+public interface MyTestModelStore {
 
-public interface MyTestModelStore extends IElement {
-
-	public interface org extends IPackage {
-		public interface reflections extends IPackage {
-			public interface TestModel$AC1 extends IClass {
+	public interface org {
+		public interface reflections {
+			public interface TestModel$AC1 {
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+					public interface java_lang_annotation_Inherited {}
+				}
 			}
-			public interface TestModel$AC2 extends IClass {
-				public interface value extends IMethod {}
+			public interface TestModel$AC1n {
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+				}
 			}
-			public interface TestModel$AF1 extends IClass {
-				public interface value extends IMethod {}
+			public interface TestModel$AC2 {
+				public interface methods {
+					public interface value {}
+				}
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+				}
 			}
-			public interface TestModel$AI1 extends IClass {
+			public interface TestModel$AF1 {
+				public interface methods {
+					public interface value {}
+				}
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+				}
 			}
-			public interface TestModel$AI2 extends IClass {
+			public interface TestModel$AI1 {
+				public interface annotations {
+					public interface org_reflections_TestModel$MAI1 {}
+					public interface java_lang_annotation_Retention {}
+				}
 			}
-			public interface TestModel$AM1 extends IClass {
-				public interface value extends IMethod {}
+			public interface TestModel$AI2 {
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+					public interface java_lang_annotation_Inherited {}
+				}
 			}
-			public interface TestModel$C1 extends IClass {
+			public interface TestModel$AM1 {
+				public interface methods {
+					public interface value {}
+				}
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+				}
 			}
-			public interface TestModel$C2 extends IClass {
+			public interface TestModel$C1 {
+				public interface annotations {
+					public interface org_reflections_TestModel$AC1n {}
+					public interface org_reflections_TestModel$AC1 {}
+				}
 			}
-			public interface TestModel$C3 extends IClass {
+			public interface TestModel$C2 {
+				public interface annotations {
+					public interface org_reflections_TestModel$AC2 {}
+				}
 			}
-			public interface TestModel$C4 extends IClass {
-				public interface f1 extends IField {}
-				public interface f3 extends IField {}
-				public interface f2 extends IField {}
-				public interface c2toC3 extends IMethod {}
-				public interface m1_int_java$lang$String$$ extends IMethod {}
-				public interface m1_int$$$$_java$lang$String$$$$ extends IMethod {}
-				public interface m1 extends IMethod {}
-				public interface m3 extends IMethod {}
-				public interface m4 extends IMethod {}
+			public interface TestModel$C3 {
+				public interface annotations {
+					public interface org_reflections_TestModel$AC2 {}
+				}
 			}
-			public interface TestModel$C5 extends IClass {
+			public interface TestModel$C4 {
+				public interface fields {
+					public interface f2 {}
+					public interface f3 {}
+					public interface f1 {}
+				}
+				public interface methods {
+					public interface c2toC3 {}
+					public interface add {}
+					public interface m1 {}
+					public interface m1_int__java_lang_String$$ {}
+					public interface m1_int$$$$__java_lang_String$$$$ {}
+					public interface m3 {}
+					public interface m4 {}
+				}
 			}
-			public interface TestModel$C6 extends IClass {
+			public interface TestModel$C5 {
 			}
-			public interface TestModel$I1 extends IClass {
+			public interface TestModel$C6 {
 			}
-			public interface TestModel$I2 extends IClass {
+			public interface TestModel$I1 {
+				public interface annotations {
+					public interface org_reflections_TestModel$AI1 {}
+				}
 			}
-			public interface TestModel$I3 extends IClass {
+			public interface TestModel$I2 {
+				public interface annotations {
+					public interface org_reflections_TestModel$AI2 {}
+				}
 			}
-			public interface TestModel$MAI1 extends IClass {
+			public interface TestModel$I3 {
+				public interface annotations {
+					public interface org_reflections_TestModel$AC2 {}
+				}
+			}
+			public interface TestModel$MAI1 {
+				public interface annotations {
+					public interface java_lang_annotation_Retention {}
+					public interface java_lang_annotation_Inherited {}
+				}
 			}
 		}
 	}

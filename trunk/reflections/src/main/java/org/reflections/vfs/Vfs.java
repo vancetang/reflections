@@ -1,20 +1,21 @@
 package org.reflections.vfs;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.commons.vfs2.*;
 import org.reflections.Reflections;
 import org.reflections.ReflectionsException;
+import org.reflections.util.ClasspathHelper;
 import org.reflections.util.Utils;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.jar.JarFile;
 
 /**
@@ -156,7 +157,7 @@ public abstract class Vfs {
     }
 
     /**try to get {@link java.io.File} from url*/
-    static java.io.File getFile(URL url) {
+    public static @Nullable java.io.File getFile(URL url) {
         java.io.File file;
         String path;
 
@@ -195,7 +196,6 @@ public abstract class Vfs {
      * <p>jarFile - creates a {@link org.reflections.vfs.ZipDir} over jar file
      * <p>jarUrl - creates a {@link org.reflections.vfs.ZipDir} over a jar url (contains ".jar!/" in it's name)
      * <p>directory - creates a {@link org.reflections.vfs.SystemDir} over a file system directory
-     * <p>vfs_jboss7 - creates a {@link org.reflections.vfs.SystemDir} over jboss 7 vfs
      * */
     public static enum DefaultUrlTypes implements UrlType {
         jarFile {
@@ -228,6 +228,100 @@ public abstract class Vfs {
             public Dir createDir(final URL url) throws Exception {
                 return new SystemDir(getFile(url));
             }
+        },
+
+        jboss_vfs {
+            public boolean matches(URL url) {
+                return url.getProtocol().equals("vfs");
+            }
+
+            public Vfs.Dir createDir(URL url) {
+                try {
+                    Object content = url.openConnection().getContent();
+                    Class<?> VirtualFile = ClasspathHelper.contextClassLoader().loadClass("org.jboss.vfs.VirtualFile");
+                    java.io.File physicalFile = (java.io.File) VirtualFile.getMethod("getPhysicalFile").invoke(content);
+                    String name = (String) VirtualFile.getMethod("getName").invoke(content);
+                    java.io.File file = new java.io.File(physicalFile.getParentFile(), name);
+                    if (!file.exists() || !file.canRead()) file = physicalFile;
+                    return file.isDirectory() ? new SystemDir(file) : new ZipDir(new JarFile(file));
+                } catch (Throwable e) {
+                    throw new RuntimeException("could not open url as VirtualFile [" + url + "]", e);
+                }
+            }
+        },
+
+        bundle {
+            public boolean matches(URL url) throws Exception {
+                return url.getProtocol().startsWith("bundle");
+            }
+
+            public Dir createDir(URL url) throws Exception {
+                try {
+                    return fromURL((URL) ClasspathHelper.contextClassLoader().
+                            loadClass("org.eclipse.core.runtime.FileLocator").getMethod("resolve", URL.class).invoke(null, url));
+                }
+                catch (Throwable ex) {
+                    return null;
+                }
+            }
+
+        },
+
+        commons_vfs2 {
+            public boolean matches(URL url) throws Exception {
+                try {
+                    final FileSystemManager manager = VFS.getManager();
+                    final FileObject fileObject = manager.resolveFile(url.toExternalForm());
+                    return fileObject.exists() && fileObject.isReadable();
+                } catch (Throwable e) { }
+                return false;
+            }
+
+            public Vfs.Dir createDir(URL url) throws Exception {
+                try {
+                    final FileSystemManager manager = VFS.getManager();
+                    final FileObject fileObject = manager.resolveFile(url.toExternalForm());
+                    return new CommonsVfs2UrlType.Dir(fileObject);
+                } catch (Throwable e) {
+                    return null;
+                }
+            }
         }
+
+    }
+
+    public abstract class AbstractDir<T> implements Dir {
+        protected final T root;
+        public AbstractDir(T root) { this.root = root; }
+
+        public T getRoot() { return root; }
+
+        public Iterable<File> getFiles() {
+            return new Iterable<File>() {
+                public Iterator<File> iterator() {
+                    return new AbstractIterator<File>() {
+                        final Stack<T> stack = new Stack<T>();
+                        {listDir(root);}
+                        protected final Vfs.File computeNext() {
+                            try {
+                                T file;
+                                while (!stack.isEmpty()) {
+                                    file = stack.pop();
+                                    if (isDir(file)) listDir(file);
+                                    else return getFile(file);
+                                }
+                                return endOfData();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    };
+                }
+            };
+        }
+
+        protected abstract File getFile(T file);
+        protected abstract boolean listDir(T file);
+        protected abstract boolean isDir(T file);
     }
 }

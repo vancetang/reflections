@@ -106,6 +106,10 @@ public class UrlTypeVFS implements UrlType {
             prefix += "zip:";
         }
 
-        return new URL(prefix + "/" + zipFile + "!" + zipPath);
+        if (zipPath.trim().length() == 0) {
+            return new URL(prefix + "/" + zipFile);
+        } else {
+            return new URL(prefix + "/" + zipFile + "!" + zipPath);
+        }
     }
 }

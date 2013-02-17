@@ -53,10 +53,10 @@ public class FilterBuilder implements Predicate<String> {
         return accept;
     }
 
-    public abstract static class Matcher extends FilterBuilder {
+    public abstract static class Matcher implements Predicate<String> {
         final Pattern pattern;
         public Matcher(final String regex) {pattern = Pattern.compile(regex);}
-        @Override public abstract boolean apply(String regex);
+        public abstract boolean apply(String regex);
         @Override public String toString() {return pattern.pattern();}
     }
 

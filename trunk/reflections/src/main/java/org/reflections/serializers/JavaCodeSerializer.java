@@ -11,15 +11,22 @@ import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.ReflectionsException;
 import org.reflections.scanners.TypeElementsScanner;
-import org.reflections.scanners.TypesScanner;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.reflections.Reflections.log;
 import static org.reflections.util.Utils.prepareFile;
@@ -45,20 +52,16 @@ import static org.reflections.util.Utils.repeat;
  *  Class&#60? extends IMethod> imethod = MyTestModelStore.org.reflections.TestModel$C4.m1.class;
  *  Method method = JavaCodeSerializer.resolve(imethod);
  * </pre>
- * <p>depends on Reflections configured with {@link org.reflections.scanners.TypesScanner} and {@link org.reflections.scanners.TypeElementsScanner}
+ * <p>depends on Reflections configured with {@link org.reflections.scanners.TypeElementsScanner}
  * <p><p>the {@link #save(org.reflections.Reflections, String)} method filename should be in the pattern: path/path/path/package.package.classname
  * */
 public class JavaCodeSerializer implements Serializer {
 
-    private static final char pathSeparator = '$';
+    private static final String pathSeparator = "_";
+    private static final String doubleSeparator = "__";
+    private static final String dotSeparator = ".";
     private static final String arrayDescriptor = "$$";
-    private static final String tokenSeparator = "_"; 
-
-    public static interface IElement {}
-    public static interface IPackage extends IElement {}
-    public static interface IClass extends IElement {}
-    public static interface IField extends IElement {}
-    public static interface IMethod extends IElement {}
+    private static final String tokenSeparator = "_";
 
     public Reflections read(InputStream inputStream) {
         throw new UnsupportedOperationException("read is not implemented on JavaCodeSerializer");
@@ -100,9 +103,7 @@ public class JavaCodeSerializer implements Serializer {
                 sb.append("package ").append(packageName).append(";\n");
                 sb.append("\n");
             }
-            sb.append("import static org.reflections.serializers.JavaCodeSerializer.*;\n");
-            sb.append("\n");
-            sb.append("public interface ").append(className).append(" extends IElement").append(" {\n\n");
+            sb.append("public interface ").append(className).append(" {\n\n");
             sb.append(toString(reflections));
             sb.append("}\n");
 
@@ -116,9 +117,8 @@ public class JavaCodeSerializer implements Serializer {
     }
 
     public String toString(Reflections reflections) {
-        if (reflections.getStore().get(TypesScanner.class).isEmpty() ||
-                reflections.getStore().get(TypeElementsScanner.class).isEmpty()) {
-            if (log != null) log.warn("JavaCodeSerializer needs TypeScanner and TypeElemenetsScanner configured");
+        if (reflections.getStore().get(TypeElementsScanner.class).isEmpty()) {
+            if (log != null) log.warn("JavaCodeSerializer needs TypeElementsScanner configured");
         }
 
         StringBuilder sb = new StringBuilder();
@@ -126,7 +126,7 @@ public class JavaCodeSerializer implements Serializer {
         List<String> prevPaths = Lists.newArrayList();
         int indent = 1;
 
-        List<String> keys = Lists.newArrayList(reflections.getStore().get(TypesScanner.class).keySet());
+        List<String> keys = Lists.newArrayList(reflections.getStore().get(TypeElementsScanner.class).keySet());
         Collections.sort(keys);
         for (String fqn : keys) {
             List<String> typePaths = Lists.newArrayList(fqn.split("\\."));
@@ -144,13 +144,14 @@ public class JavaCodeSerializer implements Serializer {
 
             //indent right - add packages
             for (int j = i; j < typePaths.size() - 1; j++) {
-                sb.append(repeat("\t", indent++)).append("public interface ").append(getNonDuplicateName(typePaths.get(j), typePaths, j)).append(" extends IPackage").append(" {\n");
+                sb.append(repeat("\t", indent++)).append("public interface ").append(getNonDuplicateName(typePaths.get(j), typePaths, j)).append(" {\n");
             }
 
             //indent right - add class
             String className = typePaths.get(typePaths.size() - 1);
 
             //get fields and methods
+            List<String> annotations = Lists.newArrayList();
             List<String> fields = Lists.newArrayList();
             final Multimap<String,String> methods = Multimaps.newSetMultimap(new HashMap<String, Collection<String>>(), new Supplier<Set<String>>() {
                 public Set<String> get() {
@@ -159,7 +160,9 @@ public class JavaCodeSerializer implements Serializer {
             });
 
             for (String element : reflections.getStore().get(TypeElementsScanner.class, fqn)) {
-                if (element.contains("(")) {
+                if (element.startsWith("@")) {
+                    annotations.add(element.substring(1));
+                } else if (element.contains("(")) {
                     //method
                     if (!element.startsWith("<")) {
                         int i1 = element.indexOf('(');
@@ -168,43 +171,59 @@ public class JavaCodeSerializer implements Serializer {
 
                         String paramsDescriptor = "";
                         if (params.length() != 0) {
-                            paramsDescriptor = tokenSeparator + params.replace('.', pathSeparator).replace(", ", tokenSeparator).replace("[]", arrayDescriptor);
+                            paramsDescriptor = tokenSeparator + params.replace(dotSeparator, tokenSeparator).replace(", ", doubleSeparator).replace("[]", arrayDescriptor);
                         }
                         String normalized = name + paramsDescriptor;
                         methods.put(name, normalized);
                     }
-                } else {
+                } else if (!element.contains(".")) {
                     //field
                     fields.add(element);
                 }
             }
 
             //add class and it's fields and methods
-            sb.append(repeat("\t", indent++)).append("public interface ").append(getNonDuplicateName(className, typePaths, typePaths.size() - 1)).append(" extends IClass").append(" {\n");
+            sb.append(repeat("\t", indent++)).append("public interface ").append(getNonDuplicateName(className, typePaths, typePaths.size() - 1)).append(" {\n");
 
             //add fields
             if (!fields.isEmpty()) {
+                sb.append(repeat("\t", indent++)).append("public interface fields {\n");
                 for (String field : fields) {
-                    sb.append(repeat("\t", indent)).append("public interface ").append(getNonDuplicateName(field, typePaths)).append(" extends IField").append(" {}\n");
+                    sb.append(repeat("\t", indent)).append("public interface ").append(getNonDuplicateName(field, typePaths)).append(" {}\n");
                 }
+                sb.append(repeat("\t", --indent)).append("}\n");
             }
 
             //add methods
             if (!methods.isEmpty()) {
+                sb.append(repeat("\t", indent++)).append("public interface methods {\n");
                 for (Map.Entry<String, String> entry : methods.entries()) {
                     String simpleName = entry.getKey();
                     String normalized = entry.getValue();
 
                     String methodName = methods.get(simpleName).size() == 1 ? simpleName : normalized;
 
-                    methodName = getNonDuplicateName(methodName, fields); //because fields and methods are both inners of the type, they can't duplicate
+                    methodName = getNonDuplicateName(methodName, fields);
 
-                    sb.append(repeat("\t", indent)).append("public interface ").append(getNonDuplicateName(methodName, typePaths)).append(" extends IMethod").append(" {}\n");
+                    sb.append(repeat("\t", indent)).append("public interface ").append(getNonDuplicateName(methodName, typePaths)).append(" {}\n");
                 }
+                sb.append(repeat("\t", --indent)).append("}\n");
+            }
+
+            //add annotations
+            if (!annotations.isEmpty()) {
+                sb.append(repeat("\t", indent++)).append("public interface annotations {\n");
+                for (String annotation : annotations) {
+                    String nonDuplicateName = annotation;
+                    nonDuplicateName = getNonDuplicateName(nonDuplicateName, typePaths);
+                    sb.append(repeat("\t", indent)).append("public interface ").append(nonDuplicateName).append(" {}\n");
+                }
+                sb.append(repeat("\t", --indent)).append("}\n");
             }
 
             prevPaths = typePaths;
         }
+
 
         //close indention
         for (int j = prevPaths.size(); j >= 1; j--) {
@@ -214,14 +233,30 @@ public class JavaCodeSerializer implements Serializer {
         return sb.toString();
     }
 
-    //inner interface with name equals to one of it's enclosing types would lead to duplicate class
     private String getNonDuplicateName(String candidate, List<String> prev, int offset) {
+        String normalized = normalize(candidate);
         for (int i = 0; i < offset; i++) {
-            if (candidate.equals(prev.get(i))) {
-                return getNonDuplicateName(candidate + tokenSeparator, prev, offset);
+            if (normalized.equals(prev.get(i))) {
+                return getNonDuplicateName(normalized + tokenSeparator, prev, offset);
             }
         }
 
+        return normalized;
+    }
+
+    private String normalize(String candidate) {
+//        String normalized = omitPrefixes(candidate);
+        String normalized = candidate;
+        return normalized.replace(dotSeparator, pathSeparator);
+    }
+
+    private String omitPrefixes(String candidate) {
+        String prefixes[] = {"java.lang.annotation.", "org.reflections."};
+        for (String prefix : prefixes) {
+            if (candidate.startsWith(prefix)) {
+                return candidate.substring(prefix.length());
+            }
+        }
         return candidate;
     }
 
@@ -230,32 +265,20 @@ public class JavaCodeSerializer implements Serializer {
     }
 
     //
-    public static Class<?> resolveClassOf(final Class<? extends IElement> element) throws ClassNotFoundException {
+    public static Class<?> resolveClassOf(final Class element) throws ClassNotFoundException {
         Class<?> cursor = element;
-        List<Class<? extends IElement>> path = Lists.newArrayList();
+        LinkedList<String> ognl = Lists.newLinkedList();
 
-        while (cursor != null && IElement.class.isAssignableFrom(cursor)) {
-            //noinspection unchecked
-            path.add((Class<? extends IElement>) cursor);
+        while (cursor != null) {
+            ognl.addFirst(cursor.getSimpleName());
             cursor = cursor.getDeclaringClass();
         }
 
-        Collections.reverse(path);
-
-        int i = 1; //first one is the store type
-
-        List<String> ognl = Lists.newArrayList();
-        while (i < path.size() &&
-                (IPackage.class.isAssignableFrom(path.get(i)) || IClass.class.isAssignableFrom(path.get(i)))) {
-            ognl.add(path.get(i).getSimpleName());
-            i++;
-        }
-
-        String classOgnl = Joiner.on(".").join(ognl).replace(".$", "$");
+        String classOgnl = Joiner.on(".").join(ognl.subList(1, ognl.size())).replace(".$", "$");
         return Class.forName(classOgnl);
     }
 
-    public static Class<?> resolveClass(final Class<? extends IClass> aClass) {
+    public static Class<?> resolveClass(final Class aClass) {
         try {
             return resolveClassOf(aClass);
         } catch (Exception e) {
@@ -263,16 +286,30 @@ public class JavaCodeSerializer implements Serializer {
         }
     }
 
-    public static Field resolveField(final Class<? extends IField> aField) {
+    public static Field resolveField(final Class aField) {
         try {
             String name = aField.getSimpleName();
-            return resolveClassOf(aField).getDeclaredField(name);
+            Class<?> declaringClass = aField.getDeclaringClass().getDeclaringClass();
+            return resolveClassOf(declaringClass).getDeclaredField(name);
         } catch (Exception e) {
             throw new ReflectionsException("could not resolve to field " + aField.getName(), e);
         }
     }
 
-    public static Method resolveMethod(final Class<? extends IMethod> aMethod) {
+    public static Annotation resolveAnnotation(Class annotation) {
+        try {
+            String name = annotation.getSimpleName().replace(pathSeparator, dotSeparator);
+            Class<?> declaringClass = annotation.getDeclaringClass().getDeclaringClass();
+            Class<?> aClass = resolveClassOf(declaringClass);
+            Class<? extends Annotation> aClass1 = (Class<? extends Annotation>) ReflectionUtils.forName(name);
+            Annotation annotation1 = aClass.getAnnotation(aClass1);
+            return annotation1;
+        } catch (Exception e) {
+            throw new ReflectionsException("could not resolve to annotation " + annotation.getName(), e);
+        }
+    }
+
+    public static Method resolveMethod(final Class aMethod) {
         String methodOgnl = aMethod.getSimpleName();
 
         try {
@@ -280,10 +317,10 @@ public class JavaCodeSerializer implements Serializer {
             Class<?>[] paramTypes;
             if (methodOgnl.contains(tokenSeparator)) {
                 methodName = methodOgnl.substring(0, methodOgnl.indexOf(tokenSeparator));
-                String[] params = methodOgnl.substring(methodOgnl.indexOf(tokenSeparator) + 1).split(tokenSeparator);
+                String[] params = methodOgnl.substring(methodOgnl.indexOf(tokenSeparator) + 1).split(doubleSeparator);
                 paramTypes = new Class<?>[params.length];
                 for (int i = 0; i < params.length; i++) {
-                    String typeName = params[i].replace(arrayDescriptor, "[]").replace(pathSeparator, '.');
+                    String typeName = params[i].replace(arrayDescriptor, "[]").replace(pathSeparator, dotSeparator);
                     paramTypes[i] = ReflectionUtils.forName(typeName);
                 }
             } else {
@@ -291,9 +328,11 @@ public class JavaCodeSerializer implements Serializer {
                 paramTypes = null;
             }
 
-            return resolveClassOf(aMethod).getDeclaredMethod(methodName, paramTypes);
+            Class<?> declaringClass = aMethod.getDeclaringClass().getDeclaringClass();
+            return resolveClassOf(declaringClass).getDeclaredMethod(methodName, paramTypes);
         } catch (Exception e) {
             throw new ReflectionsException("could not resolve to method " + aMethod.getName(), e);
         }
     }
+
 }
