@@ -367,6 +367,10 @@ public abstract class ReflectionUtils {
             }
 
             for (ClassLoader classLoader : ClasspathHelper.classLoaders(classLoaders)) {
+                if (type.contains("[")) {
+                    try { return Class.forName(type, false, classLoader); }
+                    catch (Throwable ex) { /*continue*/ }
+                }
                 try { return classLoader.loadClass(type); }
                 catch (Throwable e) { /*continue*/ }
             }
