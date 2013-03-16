@@ -25,14 +25,24 @@ public class FilterBuilder implements Predicate<String> {
 
     /** include a regular expression */
     public FilterBuilder include(final String regex) {return add(new Include(regex));}
+
     /** exclude a regular expression*/
     public FilterBuilder exclude(final String regex) {add(new Exclude(regex)); return this;}
+
     /** add a Predicate to the chain of predicates*/
     public FilterBuilder add(Predicate<String> filter) {chain.add(filter); return this;}
+
     /** include a package of a given class */
     public FilterBuilder includePackage(final Class<?> aClass) {return add(new Include(packageNameRegex(aClass)));}
+
     /** exclude a package of a given class */
     public FilterBuilder excludePackage(final Class<?> aClass) {return add(new Exclude(packageNameRegex(aClass)));}
+
+    /** include a package of a given prefix */
+    public FilterBuilder includePackage(final String prefix) {return add(new Include(prefix(prefix)));}
+
+    /** exclude a package of a given prefix */
+    public FilterBuilder excludePackage(final String prefix) {return add(new Exclude(prefix(prefix)));}
 
     private static String packageNameRegex(Class<?> aClass) {return prefix(aClass.getPackage().getName() + ".");}
 
@@ -48,6 +58,7 @@ public class FilterBuilder implements Predicate<String> {
                 if (accept && filter instanceof Include) {continue;} //skip if this filter won't change
                 if (!accept && filter instanceof Exclude) {continue;}
                 accept = filter.apply(regex);
+                if (!accept && filter instanceof Exclude) {break;} //break on first exclusion
             }
         }
         return accept;
