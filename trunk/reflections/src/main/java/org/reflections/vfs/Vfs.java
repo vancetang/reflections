@@ -1,7 +1,6 @@
 package org.reflections.vfs;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.commons.vfs2.*;
@@ -17,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.util.*;
 import java.util.jar.JarFile;
+import java.util.jar.JarInputStream;
 
 /**
  * a simple virtual file system bridge
@@ -220,7 +220,11 @@ public abstract class Vfs {
                             return new ZipDir(((JarURLConnection) urlConnection).getJarFile());
                     }
                 } catch (Throwable e) { /*fallback*/ }
-                return new ZipDir(new JarFile(getFile(url)));
+                java.io.File file = getFile(url);
+                if (file != null) {
+                    return new ZipDir(new JarFile(file));
+                }
+                return null;
             }
         },
 
@@ -290,7 +294,17 @@ public abstract class Vfs {
                     return null;
                 }
             }
-        }
+        },
+
+        jarInputStream {
+            public boolean matches(URL url) throws Exception {
+                return url.toExternalForm().contains(".jar");
+            }
+
+            public Dir createDir(final URL url) throws Exception {
+                return new JarInputDir(url);
+            }
+        };
 
     }
 }

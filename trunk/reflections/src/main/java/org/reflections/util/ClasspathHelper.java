@@ -97,6 +97,13 @@ public abstract class ClasspathHelper {
         return null;
     }
     
+    /** returns urls using {@link java.net.URLClassLoader#getURLs()} up the default classloaders parent hierarchy
+     * <p>using {@link #classLoaders(ClassLoader...)} to get default classloaders
+     **/
+    public static Set<URL> forClassLoader() {
+        return forClassLoader(classLoaders());
+    }
+
     /** returns urls using {@link java.net.URLClassLoader#getURLs()} up the classloader parent hierarchy
      * <p>if optional {@link ClassLoader}s are not specified, then both {@link #contextClassLoader()} and {@link #staticClassLoader()} are used for {@link ClassLoader#getResources(String)}
      * */

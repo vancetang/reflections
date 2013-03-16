@@ -8,6 +8,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.reflections.adapters.JavassistAdapter;
 import org.reflections.util.ClasspathHelper;
+import org.reflections.vfs.JarInputDir;
 import org.reflections.vfs.Vfs;
 import org.reflections.vfs.ZipDir;
 
@@ -16,6 +17,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -200,6 +202,21 @@ public class VfsTest {
     @Test
     public void vfsFromJarWithInnerJars() {
         //todo?
+    }
+
+    @Test
+    public void jarInputStream() {
+        JavassistAdapter javassistAdapter = new JavassistAdapter();
+
+        final URL jar = getSomeJar();
+        JarInputDir jarInputDir = new JarInputDir(jar);
+        Iterable<Vfs.File> files = jarInputDir.getFiles();
+        for (Vfs.File file : files) {
+            if (file.getName().endsWith(".class")) {
+                ClassFile classFile = javassistAdapter.getOfCreateClassObject(file);
+                System.out.println(classFile.getName() + " [" + file.getName() + " - " + file.getRelativePath() + "]");
+            }
+        }
     }
 
     //
