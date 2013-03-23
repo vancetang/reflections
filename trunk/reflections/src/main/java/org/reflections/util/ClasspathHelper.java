@@ -48,11 +48,13 @@ public abstract class ClasspathHelper {
      * <p>if optional {@link ClassLoader}s are not specified, then both {@link #contextClassLoader()} and {@link #staticClassLoader()} are used for {@link ClassLoader#getResources(String)}
      */
     public static Set<URL> forPackage(String name, ClassLoader... classLoaders) {
+        return forResource(resourceName(name), classLoaders);
+    }
+
+    /** returns urls with resources of given @{code resourceName}, using {@link ClassLoader#getResources(String)} */
+    public static Set<URL> forResource(String resourceName, ClassLoader... classLoaders) {
         final Set<URL> result = Sets.newHashSet();
-
         final ClassLoader[] loaders = classLoaders(classLoaders);
-        final String resourceName = resourceName(name);
-
         for (ClassLoader classLoader : loaders) {
             try {
                 final Enumeration<URL> urls = classLoader.getResources(resourceName);
@@ -67,11 +69,10 @@ public abstract class ClasspathHelper {
                 }
             } catch (IOException e) {
                 if (Reflections.log != null) {
-                    Reflections.log.error("error getting resources for package " + name, e);
+                    Reflections.log.error("error getting resources for " + resourceName, e);
                 }
             }
         }
-
         return result;
     }
 

@@ -17,7 +17,6 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -25,7 +24,10 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.jar.JarFile;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** */
 public class VfsTest {
@@ -223,7 +225,7 @@ public class VfsTest {
     private URL getSomeJar() {
         Collection<URL> urls = ClasspathHelper.forClassLoader();
         for (URL url : urls) {
-            if (url.getFile().endsWith(".jar")) {
+            if (url.getFile().endsWith(".jar") && !url.getFile().contains("/lib")) {
                 return url;
             }
         }
