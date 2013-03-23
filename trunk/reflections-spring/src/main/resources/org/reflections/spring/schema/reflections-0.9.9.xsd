@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+ <xsd:schema xmlns="http://org.reflections"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:tool="http://www.springframework.org/schema/tool"
+    xmlns:context="http://www.springframework.org/schema/context"
+	targetNamespace="http://org.reflections" elementFormDefault="qualified"
+	attributeFormDefault="unqualified">
+
+	<xsd:import namespace="http://www.springframework.org/schema/beans"
+		schemaLocation="http://www.springframework.org/schema/beans/spring-beans-3.0.xsd" />
+	<xsd:import namespace="http://www.springframework.org/schema/tool"
+		schemaLocation="http://www.springframework.org/schema/tool/spring-tool-3.0.xsd" />
+	<xsd:import namespace="http://www.springframework.org/schema/context"
+		schemaLocation="http://www.springframework.org/schema/context/spring-context-3.0.xsd" />
+
+	<xsd:element name="component-scan">
+		<xsd:annotation>
+			<xsd:documentation
+                    source="java:org.springframework.beans.factory.config.BeanDefinition"> <![CDATA[
+                    see org.reflections.spring.ReflectionsNamespaceHandler
+			]]></xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="include-filter" type="context:filterType"
+					minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation><![CDATA[
+	Controls which eligible types to include for component scanning.
+							]]></xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="exclude-filter" type="context:filterType"
+					minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation><![CDATA[
+	Controls which eligible types to exclude for component scanning.
+						]]></xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:sequence>
+			<xsd:attribute name="base-package" type="xsd:string"
+				use="required">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	The comma-separated list of packages to scan for annotated components.
+					]]></xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="resource-pattern" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	Controls the class files eligible for component detection. Defaults to "**/*.class", the recommended value.
+					]]></xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="use-default-filters" type="xsd:boolean"
+				default="true">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	Indicates whether automatic detection of classes annotated with @Component, @Repository, @Service,
+	or @Controller should be enabled. Default is "true".
+					]]></xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="annotation-config" type="xsd:boolean"
+				default="true">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	Indicates whether the implicit annotation post-processors should be enabled. Default is "true".
+					]]></xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="name-generator" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	The fully-qualified class name of the BeanNameGenerator to be used for naming detected components.
+					]]></xsd:documentation>
+					<xsd:appinfo>
+						<tool:annotation>
+							<tool:expected-type type="java.lang.Class" />
+							<tool:assignable-to
+								type="org.springframework.beans.factory.support.BeanNameGenerator" />
+						</tool:annotation>
+					</xsd:appinfo>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="scope-resolver" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	The fully-qualified class name of the ScopeMetadataResolver to be used for resolving the scope of
+	detected components.
+					]]></xsd:documentation>
+					<xsd:appinfo>
+						<tool:annotation>
+							<tool:expected-type type="java.lang.Class" />
+							<tool:assignable-to
+								type="org.springframework.context.annotation.ScopeMetadataResolver" />
+						</tool:annotation>
+					</xsd:appinfo>
+				</xsd:annotation>
+			</xsd:attribute>
+			<xsd:attribute name="scoped-proxy">
+				<xsd:annotation>
+					<xsd:documentation><![CDATA[
+	Indicates whether proxies should be generated for detected components, which may be necessary
+	when using scopes in a proxy-style fashion. Default is to generate no such proxies.
+					]]></xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:enumeration value="no" />
+						<xsd:enumeration value="interfaces" />
+						<xsd:enumeration value="targetClass" />
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:attribute>
+            <xsd:attribute name="collect" type="xsd:boolean" default="false">
+            <xsd:annotation>
+                    <xsd:documentation><![CDATA[
+    Indicates whether use Reflections.collect to load scanned resources
+					]]></xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attribute name="save" type="xsd:boolean" default="false">
+                <xsd:annotation>
+                    <xsd:documentation><![CDATA[
+    Indicates whether scanned metadata will be saved in {savePath}/META-INF/reflections/{basePackage}-reflections.xml
+					]]></xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+            <xsd:attribute name="parallel" type="xsd:boolean" default="true">
+                <xsd:annotation>
+                    <xsd:documentation><![CDATA[
+    Indicates whether use parallel scanning
+					]]></xsd:documentation>
+                </xsd:annotation>
+            </xsd:attribute>
+        </xsd:complexType>
+	</xsd:element>
+</xsd:schema>
