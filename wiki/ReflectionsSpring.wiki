@@ -11,7 +11,7 @@ For Maven:
         </dependency>
 }}}
 
-2. Edit your spring beans xml file to use Reflections for component-scan instead of <context:component-scan>
+2. Edit your spring beans xml file to use Reflections for component-scan instead of 'context:component-scan'
 
 {{{
        <beans
