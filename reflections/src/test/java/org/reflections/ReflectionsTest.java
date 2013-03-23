@@ -100,6 +100,9 @@ public class ReflectionsTest {
                 reflections.getTypesAnnotatedWith(AI1.class, false), are(I1.class, I2.class, C1.class, C2.class, C3.class, C5.class));
 
         assertThat("when not honoring @Inherited, meta annotation effects all subtypes, including annotations interfaces and classes",
+                reflections.getTypesAnnotatedWith(MAI1.class, false), are(AI1.class, I1.class, I2.class, C1.class, C2.class, C3.class, C5.class));
+
+        assertThat("when not honoring @Inherited, meta annotation effects all subtypes, including annotations interfaces and classes",
                 reflections.getTypesAnnotatedWith(AI2.class, false), are(I2.class, C1.class, C2.class, C3.class, C5.class));
 
         assertThat(reflections.getTypesAnnotatedWith(AM1.class), isEmpty);

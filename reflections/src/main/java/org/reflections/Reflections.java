@@ -18,13 +18,19 @@ import org.reflections.vfs.Vfs;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -32,38 +38,65 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.reflections.ReflectionUtils.forNames;
-import static org.reflections.util.Utils.*;
+import static org.reflections.ReflectionUtils.getAll;
+import static org.reflections.ReflectionUtils.names;
+import static org.reflections.ReflectionUtils.withAnnotation;
+import static org.reflections.ReflectionUtils.withAnyParameterAnnotation;
+import static org.reflections.util.Utils.close;
+import static org.reflections.util.Utils.findLogger;
+import static org.reflections.util.Utils.getConstructorsFromDescriptors;
+import static org.reflections.util.Utils.getFieldFromString;
+import static org.reflections.util.Utils.getMethodsFromDescriptors;
 
 /**
  * Reflections one-stop-shop object
- * <p>Reflections scans your classpath, indexes the metadata, allows you to query it on runtime
- * and may save and collect that information for many modules within your project.
+ * <p>Reflections scans your classpath, indexes the metadata, allows you to query it on runtime and may save and collect that information for many modules within your project.
  * <p>Using Reflections you can query your metadata such as:
  * <ul>
- * <li>get all subtypes of some type
- * <li>get all types/methods/fields annotated with some annotation, w/o annotation parameters matching
+ *     <li>get all subtypes of some type
+ *     <li>get all types/constructos/methods/fields annotated with some annotation, optionally with annotation parameters matching
+ *     <li>get all resources matching matching a regular expression
+ *     <li>get all methods with specific signature including parameters, parameter annotations and return type
  * </ul>
- * <p>a typical use of Reflections would be:
+ * <p>A typical use of Reflections would be:
  * <pre>
- * Reflections reflections = new Reflections("my.package.prefix"); //replace my.package.prefix with your package prefix, of course
+ *      Reflections reflections = new Reflections("my.project.prefix");
  *
- * Set&#60Class&#60? extends SomeType>> subTypes = reflections.getSubTypesOf(SomeType.class);
- * Set&#60Class&#60?>> annotated = reflections.getTypesAnnotatedWith(SomeAnnotation.class);
- * Set&#60Class&#60?>> annotated1 = reflections.getTypesAnnotatedWith(
- *      new SomeAnnotation() {public String value() {return "1";}
- *                            public Class&#60? extends Annotation> annotationType() {return SomeAnnotation.class;}});
+ *      Set&#60Class&#60? extends SomeType>> subTypes = reflections.getSubTypesOf(SomeType.class);
+ *
+ *      Set&#60Class&#60?>> annotated = reflections.getTypesAnnotatedWith(SomeAnnotation.class);
  * </pre>
- * basically, to use Reflections for scanning and querying, instantiate it with a {@link org.reflections.Configuration}, for example
+ * <p>Basically, to use Reflections first instantiate it with one of the constructors, then depending on the scanners, use the convenient query methods:
  * <pre>
- *      new Reflections(
- *          new ConfigurationBuilder()
- *              .filterInputsBy(new FilterBuilder().include("your project's common package prefix here..."))
- *              .setUrls(ClasspathHelper.forClassLoader())
- *              .setScanners(new SubTypesScanner(), new TypeAnnotationsScanner()));
+ *      Reflections reflections = new Reflections("my.package.prefix");
+ *      //or
+ *      Reflections reflections = new Reflections(ClasspathHelper.forPackage("my.package.prefix"), 
+ *            new SubTypesScanner(), new TypesAnnotationScanner(), new FilterBuilder().include(...), ...);
+ *
+ *       //or using the ConfigurationBuilder
+ *       new Reflections(new ConfigurationBuilder()
+ *            .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix("my.project.prefix")))
+ *            .setUrls(ClasspathHelper.forPackage("my.project.prefix"))
+ *            .setScanners(new SubTypesScanner(), new TypeAnnotationsScanner().filterResultsBy(optionalFilter), ...));
  * </pre>
- * and than use the convenient methods to query the metadata, such as {@link #getSubTypesOf},
- * {@link #getTypesAnnotatedWith}, {@link #getMethodsAnnotatedWith}, {@link #getFieldsAnnotatedWith}, {@link #getResources}
- * <br>use {@link #getStore()} to access and query the store directly
+ * And then query, for example:
+ * <pre>
+ *       Set&#60Class&#60? extends Module>> modules = reflections.getSubTypesOf(com.google.inject.Module.class);
+ *       Set&#60Class&#60?>> singletons =             reflections.getTypesAnnotatedWith(javax.inject.Singleton.class);
+ *
+ *       Set&#60String> properties =       reflections.getResources(Pattern.compile(".*\\.properties"));
+ *       Set&#60Constructor> injectables = reflections.getConstructorsAnnotatedWith(javax.inject.Inject.class);
+ *       Set&#60Method> deprecateds =      reflections.getMethodsAnnotatedWith(javax.ws.rs.Path.class);
+ *       Set&#60Field> ids =               reflections.getFieldsAnnotatedWith(javax.persistence.Id.class);
+ *
+ *       Set&#60Method> someMethods =      reflections.getMethodsMatchParams(long.class, int.class);
+ *       Set&#60Method> voidMethods =      reflections.getMethodsReturn(void.class);
+ *       Set&#60Method> pathParamMethods = reflections.getMethodsWithAnyParamAnnotated(PathParam.class);
+ *       Set&#60Method> floatToString =    reflections.getConverters(Float.class, String.class);
+ * </pre>
+ * <p>You can use other scanners defined in Reflections as well, such as: SubTypesScanner, TypeAnnotationsScanner (both default), 
+ * ResourcrsScanner, MethodAnnotationsScanner, ConstructorAnnotationsScanner, FieldAnnotationsScanner, MethodParameterScanner or any custom scanner.
+ * <p>use {@link #getStore()} to access and query the store directly
  * <p>in order to save a metadata use {@link #save(String)} or {@link #save(String, org.reflections.serializers.Serializer)}
  * for example with {@link org.reflections.serializers.XmlSerializer} or {@link org.reflections.serializers.JavaCodeSerializer}
  * <p>in order to collect pre saved metadata and avoid re-scanning, use {@link #collect(String, com.google.common.base.Predicate, org.reflections.serializers.Serializer...)}}
@@ -72,12 +105,11 @@ import static org.reflections.util.Utils.*;
  * than the later will not be scanned). in that case use the other constructors and specify the relevant packages/urls
  * <p><p><p>For Javadoc, source code, and more information about Reflections Library, see http://code.google.com/p/reflections/
  */
-public class Reflections extends ReflectionUtils {
+public class Reflections {
     @Nullable public static Logger log = findLogger(Reflections.class);
 
     protected final transient Configuration configuration;
     protected Store store;
-    private Map<Class, Scanner> scannerMap;
 
     /**
      * constructs a Reflections instance and scan according to given {@link Configuration}
@@ -251,11 +283,9 @@ public class Reflections extends ReflectionUtils {
         }
 
         if (log != null) {
-            List<String> list = Lists.newArrayList();
-            for (Vfs.File file : files) list.add(file.getRelativePath());
             Store store = reflections.getStore();
             log.info(format("Reflections took %d ms to collect %d url%s, producing %d keys and %d values [%s]",
-                    System.currentTimeMillis() - start, list.size(), !list.isEmpty() ? "s" : "", store.getKeysCount(), store.getValuesCount(), Joiner.on(", ").join(list)));
+                    System.currentTimeMillis() - start, urls.size(), urls.size() > 1 ? "s" : "", store.getKeysCount(), store.getValuesCount(), Joiner.on(", ").join(urls)));
         }
         return reflections;
     }
